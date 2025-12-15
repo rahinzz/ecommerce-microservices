@@ -7,6 +7,11 @@ managing user operations such as creating
 users, fetching user details, and listing 
 all users.
 
+This service follows clean architecture 
+principles with proper validation, 
+exception handling, and controller-level 
+testing.
+
 This service is part of a larger modular 
 microservices architecture under the main 
 'project' folder.
@@ -21,6 +26,9 @@ microservices architecture under the main
 - Spring Data JPA
 - Hibernate
 - H2 In-Memory Database
+- JUnit 5
+- Mockito
+- MockMvc
 - Lombok (Optional)
 - Swagger/OpenAPI
 - Maven
@@ -34,6 +42,9 @@ userservice
 ├── src/main/java/com/project/userservice
 │   ├── UserserviceApplication.java
 │   │
+│   ├── constants
+│   │     └── AppConstants.java
+│   │
 │   ├── config
 │   │     └── SwaggerConfig.java
 │   │
@@ -42,10 +53,13 @@ userservice
 │   │
 │   ├── dto
 │   │     ├── UserDTO.java
-│   │     └── UserResponseDTO.java
+│   │     ├── UserResponseDTO.java
+│   │     └── ErrorResponseDTO.java
 │   │
 │   ├── exceptionhandler
-│   │     └── GlobalExceptionHandler.java
+│   │     ├── GlobalExceptionHandler.java
+│   │     ├── UserAlreadyExistsException.java
+│   │     └── UserNotFoundException.java
 │   │
 │   ├── model
 │   │     └── User.java
@@ -61,9 +75,10 @@ userservice
 │
 ├── src/main/resources
 │   ├── application.properties
-│   └── data.sql   (optional for sample data)
 │
-├── src/test/java
+├── src/test/java/com/project/userservice
+│   └── controller
+│         └── UserControllerTest.java
 │
 ├── pom.xml
 └── README.txt
@@ -80,7 +95,8 @@ POST /  → Create User
 Request Body:
 {
   "name": "John Doe",
-  "email": "john@example.com"
+  "email": "john@example.com",
+  "password": "password"
 }
 
 Response:
@@ -89,6 +105,9 @@ Response:
   "name": "John Doe",
   "email": "john@example.com"
 }
+
+409 → User Already Exists  
+400 → Validation Error
 
 -------------------------------------------
 GET /{id}  → Get User By ID
@@ -114,16 +133,44 @@ Response (200 OK):
 -------------------------------------------
 4. VALIDATION
 -------------------------------------------
-- Uses @Valid on incoming DTOs.
-- Handles:
-   • MethodArgumentNotValidException  
-   • RuntimeException  
-   • Custom validation errors  
+- Uses @Valid on incoming DTOs
+- Field-level validation using:
+   • @NotBlank
+   • @Email
+   • @Size
 
-GlobalExceptionHandler handles all validation responses.
+Handled globally via:
+- MethodArgumentNotValidException
+- UserAlreadyExistsException
+- UserNotFoundException
+- RuntimeException
+
+GlobalExceptionHandler returns
+consistent error responses.
 
 -------------------------------------------
-5. H2 DATABASE SETUP
+5. TESTING
+-------------------------------------------
+
+- Controller tests written using:
+   • @WebMvcTest
+   • MockMvc
+   • Mockito
+
+Test Class:
+- UserControllerTest
+
+Test Scenarios:
+- Create user 
+- Get user by ID
+- Get all users
+- Invalid request handling
+
+Run Tests:
+mvn test
+
+-------------------------------------------
+6. H2 DATABASE SETUP
 -------------------------------------------
 
 H2 console enabled.
@@ -131,7 +178,7 @@ H2 console enabled.
 Access URL:
 http://localhost:8080/h2-console
 
-Typical application.properties:
+application.properties:
 -------------------------------------------
 spring.datasource.url=jdbc:h2:mem:usersdb
 spring.datasource.driverClassName=org.h2.Driver
@@ -143,7 +190,7 @@ spring.h2.console.path=/h2-console
 -------------------------------------------
 
 -------------------------------------------
-6. SWAGGER DOCUMENTATION
+7. SWAGGER DOCUMENTATION
 -------------------------------------------
 
 Swagger UI:
@@ -155,7 +202,7 @@ Annotations used:
 - @OpenAPIDefinition
 
 -------------------------------------------
-7. BUILD & RUN
+8. BUILD & RUN
 -------------------------------------------
 
 Build:
@@ -164,29 +211,24 @@ mvn clean install
 Run:
 mvn spring-boot:run
 
-OR using IDE (STS/IntelliJ):
+OR using IDE:
 Right-click project → Run As → Spring Boot App
 
 -------------------------------------------
-8. FUTURE MICROSERVICES EXPANSION
+9. FUTURE MICROSERVICES EXPANSION
 -------------------------------------------
 
-This repo will eventually include:
+Planned structure:
 
 project/
    ├── userservice/
    ├── productservice/
    └── apigateway/
 
-Each service will have its own README.
-
--------------------------------------------
-9. VERSION CONTROL GUIDELINES
--------------------------------------------
-- Push userservice immediately to GitHub.
-- Keep each service modular & independent.
-- Use feature branches for future updates.
-- Update README as new modules are added.
+Each service will remain:
+- Independently deployable
+- Independently testable
+- Independently documented
 
 -------------------------------------------
 END OF FILE
