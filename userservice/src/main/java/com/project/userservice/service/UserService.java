@@ -8,7 +8,7 @@ import com.project.userservice.model.User;
 
 public interface UserService {
 	
-	public User saveUser(UserDTO user) throws Exception;
+	public User saveUser(UserDTO user);
 	
 	public User findById(Long id);
 	

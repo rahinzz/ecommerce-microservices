@@ -8,8 +8,11 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.project.userservice.constants.AppConstants;
 import com.project.userservice.dto.UserDTO;
 import com.project.userservice.dto.UserResponseDTO;
+import com.project.userservice.exceptionhandler.UserAlreadyExistsException;
+import com.project.userservice.exceptionhandler.UserNotFoundException;
 import com.project.userservice.model.User;
 import com.project.userservice.repository.UserRepository;
 import com.project.userservice.service.UserService;
@@ -25,14 +28,25 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public User saveUser(UserDTO userDTO) throws Exception {
-		User user = new User(userDTO.getName(), userDTO.getEmail(), encode(userDTO.getPassword()));
-		return userRepository.save(user);
+	public User saveUser(UserDTO userDTO) {
+	    String encodedPassword;
+	    
+	    if(userRepository.existsByNameAndEmail(userDTO.getName(), userDTO.getEmail())) {
+	    	throw new UserAlreadyExistsException(String.format(AppConstants.USER_ALREADY_EXISTS, userDTO.getName(), userDTO.getEmail()));
+	    }
+
+	    try {
+	        encodedPassword = encode(userDTO.getPassword());
+	    } catch (Exception ex) {
+	        throw new RuntimeException(AppConstants.PASSWORD_ENCODING_ERROR);
+	    }
+
+	    return userRepository.save(new User(userDTO.getName(), userDTO.getEmail(), encodedPassword));
 	}
 
 	@Override
 	public User findById(Long id) {
-	    return userRepository.findById(id).orElse(null);
+	    return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(AppConstants.USR_NOT_FOUND_BY_ID + id));
 	}
 
 	@Override
@@ -41,16 +55,16 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public User updateUser(User user) {
-		if(!userRepository.existsById(user.getId()))
-				return null;
-		
-		return userRepository.save(user);
-	}
+    public User updateUser(User user) {
+        if (!userRepository.existsById(user.getId())) {
+            throw new UserNotFoundException(AppConstants.USR_NOT_FOUND_BY_ID + user.getId());
+        }
+        return userRepository.save(user);
+    }
 	
 	public String encode(String password) throws Exception {
-		MessageDigest digest = MessageDigest.getInstance("SHA-256");
-	    byte[] hash = digest.digest(password.getBytes("UTF-8"));
+		MessageDigest digest = MessageDigest.getInstance(AppConstants.HASH_ALGO_SHA256);
+	    byte[] hash = digest.digest(password.getBytes(AppConstants.UTF_8));
 	    return Base64.getEncoder().encodeToString(hash);
 	}
 
